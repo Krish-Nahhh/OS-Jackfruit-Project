@@ -1,0 +1,13 @@
+
+# Ignore container filesystems
+rootfs-*/
+
+# Build artifacts
+*.o
+*.ko
+engine
+
+# Logs
+logs/
+*.log
+
