@@ -1,13 +1,33 @@
-
-# Ignore container filesystems
-rootfs-*/
-
 # Build artifacts
 *.o
 *.ko
+*.mod
+*.mod.c
+*.cmd
+Module.symvers
+modules.order
+
+# Kernel build temp
+.*.cmd
+*.tmp
+
+# Binaries
 engine
+cpu_hog
+memory_hog
+io_pulse
 
 # Logs
 logs/
 *.log
 
+# Root filesystems
+rootfs-*
+
+# Archives
+*.tar.gz
+
+# Editor junk
+*~
+*.swp
+.DS_Store
