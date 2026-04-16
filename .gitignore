@@ -1,4 +1,4 @@
-# Build artifacts
+# Kernel build artifacts
 *.o
 *.ko
 *.mod
@@ -7,11 +7,11 @@
 Module.symvers
 modules.order
 
-# Kernel build temp
+# Hidden kernel build files
 .*.cmd
 *.tmp
 
-# Binaries
+# Binaries (user programs)
 engine
 cpu_hog
 memory_hog
@@ -21,13 +21,14 @@ io_pulse
 logs/
 *.log
 
-# Root filesystems
+# Container filesystems
 rootfs-*
 
-# Archives
+# Large / unnecessary files
 *.tar.gz
 
-# Editor junk
+# Editor / OS junk
 *~
 *.swp
 .DS_Store
+Thumbs.db
