@@ -8,8 +8,8 @@ This project involves builds a lightweight Linux container runtime in C with a l
 
 | Name | SRN |
 |------|-----|
-| [Krishna Manoj] | [PES2UG24CS236] |
-| [Kushi Niranjana] | [PES2UG24CS245] |
+| Krishna Manoj | PES2UG24CS236 |
+| Kushi Niranjana | PES2UG24CS245 |
 
 ---
 
@@ -62,7 +62,7 @@ cp cpu_hog ./rootfs-alpha/
 
 ## 3. Demo Screenshots
 
-*(See `report.pdf)*
+*(See report.pdf)*
 
 | # | Demonstrates |
 |---|-------------|
@@ -80,18 +80,23 @@ cp cpu_hog ./rootfs-alpha/
 ## 4. Engineering Analysis
 
 **Isolation Mechanisms**
+
 `clone()` is called with `CLONE_NEWPID`, `CLONE_NEWUTS`, and `CLONE_NEWNS` to give each container isolated PID, hostname, and mount namespaces. The kernel maintains separate `struct pid`, `uts_namespace`, and `mnt_namespace` structs per container. `chroot()` restricts the filesystem view to the container's own rootfs copy. `pivot_root` would be stronger (prevents `..` escape) but requires the new root to already be a mount point. The host kernel still shares the scheduler, network stack, and memory allocator with all containers — namespaces restrict visibility, not resource access.
 
 **Supervisor and Process Lifecycle**
+
 Linux requires a living parent to `wait()` on children — otherwise they become zombies until reparented to init. The supervisor stays alive as that persistent parent. On container exit, `SIGCHLD` fires and `sigchld_handler` calls `waitpid(-1, …, WNOHANG)` in a loop to reap all ready children and update metadata. `stop_requested` is set before any kill signal so the handler can distinguish voluntary stop (stop_requested=1) from hard-limit kill (SIGKILL + stop_requested=0). `SA_RESTART` prevents spurious `EINTR` in the accept loop.
 
 **IPC, Threads, and Synchronization**
+
 Two IPC paths are used. Logging (Path A) uses pipes — one producer thread per container pushes output chunks into a 16-slot bounded buffer; a single consumer thread drains it to log files. The buffer uses a `pthread_mutex_t` + two condition variables (`not_full`, `not_empty`): producers block when full, consumer blocks when empty, and `pthread_cond_broadcast` on shutdown drains cleanly. Without this, producers would race on `buffer->head` and the consumer could exit before flushing the last entries. Control (Path B) uses a UNIX domain socket — the CLI sends a fixed-size `control_request_t` and reads back a `control_response_t`. A `metadata_lock` mutex protects the container list from races between the SIGCHLD handler and the accept loop.
 
 **Memory Management and Enforcement**
+
 RSS counts physical pages currently in RAM for a process (`get_mm_rss` sums anonymous, file-mapped, shared, and SwapBacked pages). It excludes untouched allocations, swapped pages, and counts shared libraries once per process rather than once globally. The soft limit warns that a container is trending high but allows natural recovery — killing on first crossing would be too aggressive. The hard limit is a strict ceiling; crossing it means the container has violated its allocation contract. Enforcement belongs in kernel space because a user-space monitor is subject to scheduling delays and its signals can be caught or blocked. `send_sig(SIGKILL, …)` from the kernel is unconditional and immediate.
 
 **Scheduling Behavior**
+
 CFS schedules the process with the lowest `vruntime`, weighted by `nice`. In Experiment 1, the `nice 0` container finished ~3× faster than the `nice +10` container, matching the CFS weight ratio — neither starved. In Experiment 2, `io_pulse` stayed responsive against a competing `cpu_hog` at equal priority because each voluntary I/O block resets its `vruntime` to near the minimum, granting fast rescheduling on every wakeup. CFS implicitly favours I/O-bound work without explicit priority tuning.
 
 ---
